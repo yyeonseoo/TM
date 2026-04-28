@@ -1,20 +1,30 @@
 import type { JobStatusResponse } from '../types/news'
 
-export function JobProgressCard(props: { title: string; job: JobStatusResponse | null | undefined; error: string | null }) {
+export function JobProgressCard(props: {
+  title: string
+  job: JobStatusResponse | null | undefined
+  error: string | null
+  kind?: 'collect' | 'analyze'
+}) {
   const progress = props.job?.progress ?? 0
   const status = props.job?.status ?? 'idle'
   const message = props.job?.message ?? ''
   const err = props.job?.error ?? props.error
 
   return (
-    <div className="nc-card">
+    <div className="nc-card nc-cardGlass">
       <div className="nc-cardHeader">
-        <div className="nc-cardTitle">{props.title}</div>
-        <div className="nc-badge">{status}</div>
+        <div className="nc-cardTitle" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span className={`nc-miniIcon ${props.kind ?? ''}`} aria-hidden="true" />
+          {props.title}
+        </div>
+        <div className={`nc-badge ${status === 'done' ? 'good' : status === 'running' || status === 'queued' ? 'warn' : status === 'error' ? 'bad' : ''}`}>
+          {status}
+        </div>
       </div>
       <div className="nc-cardBody">
         <div className="nc-progressOuter" aria-label={`${props.title} progress`}>
-          <div className="nc-progressInner" style={{ width: `${progress}%` }} />
+          <div className={`nc-progressInner ${status === 'running' ? 'running' : ''}`} style={{ width: `${progress}%` }} />
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10 }}>
           <div className="nc-muted" style={{ fontSize: 12 }}>

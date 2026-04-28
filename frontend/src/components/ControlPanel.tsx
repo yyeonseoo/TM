@@ -11,10 +11,10 @@ export function ControlPanel(props: {
   busy: boolean
 }) {
   return (
-    <div className="nc-card">
+    <div className="nc-card nc-cardGlass">
       <div className="nc-cardHeader">
-        <div className="nc-cardTitle">수집 설정</div>
-        <div className="nc-badge">controls</div>
+        <div className="nc-cardTitle">Control Panel</div>
+        <div className="nc-badge">설정</div>
       </div>
       <div className="nc-cardBody">
         <div className="nc-field">
@@ -32,6 +32,7 @@ export function ControlPanel(props: {
             type="number"
             min={1}
             max={300}
+            step={1}
             value={props.targetCount}
             onChange={(e) => props.setTargetCount(Number(e.target.value))}
           />
@@ -44,6 +45,7 @@ export function ControlPanel(props: {
             type="number"
             min={10}
             max={2000}
+            step={10}
             value={props.linkPoolSize}
             onChange={(e) => props.setLinkPoolSize(Number(e.target.value))}
           />
@@ -53,13 +55,9 @@ export function ControlPanel(props: {
           <button className="nc-btn primary" onClick={props.onCollect} disabled={props.busy}>
             Collect
           </button>
-          <button className="nc-btn" onClick={props.onAnalyze} disabled={!props.canAnalyze || props.busy}>
+          <button className="nc-btn secondary" onClick={props.onAnalyze} disabled={!props.canAnalyze || props.busy}>
             Analyze
           </button>
-        </div>
-
-        <div className="nc-muted" style={{ fontSize: 12, marginTop: 10, lineHeight: 1.4 }}>
-          시크릿은 백엔드 환경변수 <code>NAVER_CLIENT_ID</code>, <code>NAVER_CLIENT_SECRET</code>로 설정되어 있어야 합니다.
         </div>
       </div>
     </div>

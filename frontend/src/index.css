@@ -1,22 +1,31 @@
 /* Global baseline for News Consensus UI */
 :root {
-  --bg: #0b1220;
-  --panel: rgba(255, 255, 255, 0.06);
-  --panel-2: rgba(255, 255, 255, 0.09);
-  --border: rgba(255, 255, 255, 0.14);
-  --text: rgba(255, 255, 255, 0.88);
-  --muted: rgba(255, 255, 255, 0.64);
-  --accent: #7c3aed;
-  --good: #22c55e;
-  --warn: #f59e0b;
-  --bad: #ef4444;
-  --shadow: rgba(0, 0, 0, 0.35) 0 20px 45px -25px;
+  /* Palette inspired by the reference (navy + blue + light surfaces) */
+  --bg: #eef2f7; /* page background */
+  --surface: #ffffff; /* cards/panels */
+  --surface-2: #f7f9fc; /* subtle section fill */
+  --border: rgba(14, 30, 58, 0.14);
 
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  --text: rgba(12, 20, 34, 0.92);
+  --muted: rgba(12, 20, 34, 0.62);
+
+  --navy-900: #0b2a55;
+  --navy-950: #081f3f;
+  --accent: #2f74c0; /* primary blue */
+  --accent-2: #39a6c6; /* teal-ish */
+
+  --good: #16a34a;
+  --warn: #d97706;
+  --bad: #dc2626;
+
+  --shadow: rgba(12, 20, 34, 0.08) 0 14px 40px -22px;
+
+  font-family: Pretendard, Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   color: var(--text);
-  background: radial-gradient(1200px 600px at 20% -10%, rgba(124, 58, 237, 0.35), transparent 55%),
-    radial-gradient(900px 520px at 95% 10%, rgba(34, 197, 94, 0.18), transparent 55%),
-    var(--bg);
+  background:
+    radial-gradient(1200px 680px at 12% -10%, rgba(47, 116, 192, 0.10), transparent 62%),
+    radial-gradient(980px 620px at 92% 0%, rgba(57, 166, 198, 0.08), transparent 60%),
+    linear-gradient(180deg, #f4f7fc 0%, #eef2f7 55%, #e9eef6 100%);
 }
 
 * {
@@ -38,8 +47,8 @@ a {
 
 code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(12, 20, 34, 0.04);
+  border: 1px solid rgba(12, 20, 34, 0.10);
   padding: 2px 6px;
   border-radius: 6px;
 }

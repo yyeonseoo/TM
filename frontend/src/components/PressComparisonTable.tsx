@@ -5,25 +5,25 @@ export function PressComparisonTable(props: { issue: Issue }) {
   if (!rows.length) return <div className="nc-muted">언론사 비교 데이터가 없습니다.</div>
 
   return (
-    <div style={{ overflow: 'auto' }}>
-      <table className="nc-table">
+    <div className="nc-compareWrap" aria-label="press comparison summary">
+      <table className="nc-table nc-compareTable">
         <thead>
           <tr>
-            <th style={{ width: 120 }}>언론사</th>
-            <th style={{ width: 180 }}>키워드</th>
-            <th>강조 문장</th>
-            <th style={{ width: 220 }}>관련 기사</th>
+            <th className="col-press">언론사</th>
+            <th className="col-keywords">키워드</th>
+            <th className="col-emphasis">강조 문장</th>
+            <th className="col-titles">관련 기사</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((r) => (
             <tr key={r.press}>
-              <td>{r.press}</td>
-              <td className="nc-muted" style={{ fontSize: 12 }}>
-                {(r.keywords ?? []).slice(0, 6).join(', ') || '-'}
+              <td className="nc-cellStrong">{r.press}</td>
+              <td className="nc-muted nc-cellClamp2">
+                {(r.keywords ?? []).slice(0, 8).join(', ') || '-'}
               </td>
-              <td>{(r.emphasizedSentences ?? [])[0] || <span className="nc-muted">-</span>}</td>
-              <td className="nc-muted" style={{ fontSize: 12 }}>
+              <td className="nc-cellClamp3">{(r.emphasizedSentences ?? [])[0] || <span className="nc-muted">-</span>}</td>
+              <td className="nc-muted nc-cellClamp2">
                 {(r.titles ?? []).slice(0, 3).join(' / ') || '-'}
               </td>
             </tr>

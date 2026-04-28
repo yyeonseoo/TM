@@ -16,11 +16,12 @@ export function useJobPolling(jobId: string | null, options: PollingOptions) {
 
   useEffect(() => {
     if (!options.enabled || !jobId) return
+    const activeJobId = jobId
     let cancelled = false
 
     async function tick() {
       try {
-        const next = await newsConsensusApi.getJob(jobId)
+        const next = await newsConsensusApi.getJob(activeJobId)
         if (!cancelled) {
           setJob(next)
           setError(null)

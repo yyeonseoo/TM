@@ -9,9 +9,11 @@ __pycache__/
 
 # Local env files
 .env
+**/.env
 
 # Backend runtime outputs
 backend/data/runs/
+backend/data/jobs.json
 
 # Frontend dependencies/build output (also ignored in frontend/.gitignore)
 frontend/node_modules/

@@ -8,6 +8,25 @@ NAVER_NEWS_URL = "https://openapi.naver.com/v1/search/news.json"
 DEFAULT_POLITICS_QUERY = "\uc815\uce58"
 
 
+def _try_load_dotenv() -> None:
+    """
+    Best-effort dotenv load.
+    This module can run inside background job threads where app-startup dotenv
+    loading might not have executed in the same process (e.g. reloaders).
+    """
+    try:
+        from dotenv import load_dotenv  # type: ignore
+
+        root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        load_dotenv(os.path.join(root, "backend", ".env"), override=False)
+        load_dotenv(os.path.join(root, ".env"), override=False)
+    except Exception:
+        return
+
+
+_try_load_dotenv()
+
+
 def _get_credential(name):
     value = os.getenv(name)
     if value:

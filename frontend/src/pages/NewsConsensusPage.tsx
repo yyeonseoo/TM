@@ -10,7 +10,6 @@ import { Header } from '../components/Header'
 import { IssueDetailPanel } from '../components/IssueDetailPanel'
 import { IssueTopCards } from '../components/IssueTopCards'
 import { JobProgressCard } from '../components/JobProgressCard'
-import { RunStatusBar } from '../components/RunStatusBar'
 import '../styles/newsConsensus.css'
 
 export function NewsConsensusPage() {
@@ -79,8 +78,7 @@ export function NewsConsensusPage() {
 
   return (
     <div className="nc-page">
-      <Header projectName="뉴스 이슈 분석 시스템" />
-      <RunStatusBar runId={runId} collectStatus={badges.collect} analyzeStatus={badges.analyze} />
+      <Header projectName="뉴스 이슈 분석 시스템" collectStatus={badges.collect} analyzeStatus={badges.analyze} />
 
       <div className="nc-layout">
         <aside className="nc-left">
@@ -96,12 +94,20 @@ export function NewsConsensusPage() {
             canAnalyze={canAnalyze}
             busy={collect.job?.status === 'running' || analyze.job?.status === 'running'}
           />
+          <section className="nc-section nc-sectionTight">
+            <div className="nc-sectionTitle">수집된 기사 : {(articles?.length ?? 0).toString().padStart(2, '0')}개</div>
+            <ArticleTable
+              variant="compact"
+              articles={articles}
+              loading={collect.job?.status === 'running' || collect.job?.status === 'queued'}
+            />
+          </section>
         </aside>
 
-        <main className="nc-main">
+        <main className="nc-center">
           <div className="nc-grid">
-            <JobProgressCard title="수집 진행률" job={collect.job} error={collect.error} />
-            <JobProgressCard title="분석 진행률" job={analyze.job} error={analyze.error} />
+            <JobProgressCard title="수집 진행률" job={collect.job} error={collect.error} kind="collect" />
+            <JobProgressCard title="분석 진행률" job={analyze.job} error={analyze.error} kind="analyze" />
           </div>
 
           {(runError || articlesError || issuesError) && (
@@ -112,15 +118,10 @@ export function NewsConsensusPage() {
           )}
 
           <section className="nc-section">
-            <div className="nc-sectionTitle">수집된 기사</div>
-            <ArticleTable articles={articles} />
-          </section>
-
-          <section className="nc-section">
             <div className="nc-sectionTitle">이슈 TOP 3</div>
             <IssueTopCards
               issues={issues}
-              loading={issuesLoading}
+              loading={issuesLoading || analyze.job?.status === 'running' || analyze.job?.status === 'queued'}
               selectedIssueId={selectedIssue?.issueId ?? null}
               onSelect={setSelectedIssueId}
             />
