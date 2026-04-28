@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
 from backend.storage.schemas import (
     AnalyzeResponse,
@@ -9,6 +9,7 @@ from backend.storage.schemas import (
 )
 from backend.services.collect_service import start_collect_job
 from backend.services.analyze_service import start_analyze_job
+from backend.services.news_timeseries_service import get_news_timeseries
 from backend.storage.run_repository import (
     get_run_meta,
     list_articles,
@@ -61,3 +62,34 @@ def get_issues(runId: str):
         raise HTTPException(status_code=404, detail="issues not found for run")
     return IssuesResponse(runId=runId, issues=issues)
 
+@router.get("/runs/{runId}/issues/timeseries")
+def get_issue_timeseries(
+    runId: str,
+    keyword: str = Query(..., description="재검색할 이슈 키워드"),
+    display: int = Query(100, ge=1, le=100, description="가져올 기사 수"),
+):
+    """
+    선택된 이슈 키워드 기반 네이버 뉴스 재검색
+    날짜별 기사 수를 집계 -> 프론트 시계열 차트용 데이터로 반환
+    """
+
+    meta = get_run_meta(runId)
+    if not meta:
+        raise HTTPException(status_code=404, detail="run not found")
+
+    try:
+        result = get_news_timeseries(keyword=keyword, display=display)
+
+        return {
+            "runId": runId,
+            **result,
+        }
+
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"news timeseries failed: {str(e)}",
+        )

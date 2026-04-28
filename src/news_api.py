@@ -80,3 +80,71 @@ def fetch_news_links(query=DEFAULT_POLITICS_QUERY, target_count=300, display=100
                     return links
 
     return links
+
+#
+def fetch_news_items(query, target_count=100, display=100, max_pages=1):
+    """
+    선택된 이슈 키워드 -> 재검색 -> 기사 item 전체 반환
+    """
+    client_id = _get_credential("NAVER_CLIENT_ID")
+    client_secret = _get_credential("NAVER_CLIENT_SECRET")
+
+    if not client_id or not client_secret:
+        raise RuntimeError(
+            "NAVER_CLIENT_ID와 NAVER_CLIENT_SECRET을 환경변수 또는 Streamlit secrets에 설정해야 합니다."
+        )
+
+    headers = {
+        "X-Naver-Client-Id": client_id,
+        "X-Naver-Client-Secret": client_secret,
+    }
+
+    items_result = []
+    seen_links = set()
+
+    display = min(int(display), 100)
+
+    for page in range(max_pages):
+        params = {
+            "query": query,
+            "display": display,
+            "start": page * display + 1,
+            "sort": "date",
+        }
+
+        response = requests.get(
+            NAVER_NEWS_URL,
+            headers=headers,
+            params=params,
+            timeout=10,
+        )
+        response.raise_for_status()
+
+        items = response.json().get("items", [])
+        if not items:
+            break
+
+        for item in items:
+            link = html.unescape(item.get("link", ""))
+            originallink = html.unescape(item.get("originallink", ""))
+
+            unique_key = link or originallink
+            if not unique_key or unique_key in seen_links:
+                continue
+
+            seen_links.add(unique_key)
+
+            items_result.append(
+                {
+                    "title": html.unescape(item.get("title", "")),
+                    "description": html.unescape(item.get("description", "")),
+                    "link": link,
+                    "originallink": originallink,
+                    "pubDate": item.get("pubDate", ""),
+                }
+            )
+
+            if len(items_result) >= target_count:
+                return items_result
+
+    return items_result
