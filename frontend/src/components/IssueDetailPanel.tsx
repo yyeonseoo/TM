@@ -2,8 +2,10 @@ import { useMemo, useState } from 'react'
 import type { Issue } from '../types/news'
 import { PressComparisonTable } from './PressComparisonTable'
 import { PressTabs } from './PressTabs'
+import { IssueGraphPanel } from '../features/issueGraph/IssueGraphPanel'
+import { IssueTimelinePanel } from '../features/issueTimeline/IssueTimelinePanel'
 
-type TabKey = 'facts' | 'compare' | 'evidence'
+type TabKey = 'facts' | 'compare' | 'evidence' | 'graph' | 'timeline'
 
 export function IssueDetailPanel(props: { issue: Issue | null }) {
   const issue = props.issue
@@ -48,6 +50,12 @@ export function IssueDetailPanel(props: { issue: Issue | null }) {
           <button type="button" className={`nc-tabU ${tab === 'compare' ? 'active' : ''}`} onClick={() => setTab('compare')}>
             언론사별 비교
           </button>
+          <button type="button" className={`nc-tabU ${tab === 'graph' ? 'active' : ''}`} onClick={() => setTab('graph')}>
+            관계 그래프
+          </button>
+          <button type="button" className={`nc-tabU ${tab === 'timeline' ? 'active' : ''}`} onClick={() => setTab('timeline')}>
+            시계열
+          </button>
           <button type="button" className={`nc-tabU ${tab === 'evidence' ? 'active' : ''}`} onClick={() => setTab('evidence')}>
             근거 문장
           </button>
@@ -75,6 +83,20 @@ export function IssueDetailPanel(props: { issue: Issue | null }) {
             <PressComparisonTable issue={issue} />
             <div className="nc-subtitle">언론사별 상세</div>
             <PressTabs issue={issue} />
+          </div>
+        ) : null}
+
+        {tab === 'graph' ? (
+          <div className="nc-stack">
+            <div className="nc-subtitle">이슈 관계 그래프</div>
+            <IssueGraphPanel issue={issue} />
+          </div>
+        ) : null}
+
+        {tab === 'timeline' ? (
+          <div className="nc-stack">
+            <div className="nc-subtitle">이슈 시계열</div>
+            <IssueTimelinePanel issue={issue} />
           </div>
         ) : null}
 

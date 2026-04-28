@@ -18,13 +18,17 @@ export function PressComparisonTable(props: { issue: Issue }) {
         <tbody>
           {rows.map((r) => (
             <tr key={r.press}>
-              <td className="nc-cellStrong">{r.press}</td>
-              <td className="nc-muted nc-cellClamp2">
-                {(r.keywords ?? []).slice(0, 8).join(', ') || '-'}
+              <td className="col-press">
+                <div className="nc-cellStrong">{r.press}</div>
               </td>
-              <td className="nc-cellClamp3">{(r.emphasizedSentences ?? [])[0] || <span className="nc-muted">-</span>}</td>
-              <td className="nc-muted nc-cellClamp2">
-                {(r.titles ?? []).slice(0, 3).join(' / ') || '-'}
+              <td className="col-keywords">
+                <div className="nc-cellClamp nc-cellClamp2 nc-muted">{(r.keywords ?? []).slice(0, 8).join(', ') || '-'}</div>
+              </td>
+              <td className="col-emphasis">
+                <div className="nc-cellClamp nc-cellClamp3">{(r.emphasizedSentences ?? [])[0] || <span className="nc-muted">-</span>}</div>
+              </td>
+              <td className="col-titles">
+                <div className="nc-cellClamp nc-cellClamp2 nc-muted">{(r.titles ?? []).slice(0, 3).join(' / ') || '-'}</div>
               </td>
             </tr>
           ))}
