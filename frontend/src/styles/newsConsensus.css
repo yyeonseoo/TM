@@ -1,0 +1,295 @@
+.nc-page {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 20px 18px 28px;
+}
+
+.nc-layout {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.nc-left {
+  position: sticky;
+  top: 14px;
+  align-self: start;
+}
+
+.nc-main {
+  min-width: 0;
+}
+
+.nc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.nc-section {
+  margin-top: 14px;
+  padding: 14px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+}
+
+.nc-sectionTitle {
+  font-weight: 650;
+  letter-spacing: 0.2px;
+  margin-bottom: 10px;
+}
+
+.nc-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+}
+
+.nc-cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 12px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.nc-cardTitle {
+  font-weight: 650;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.nc-cardBody {
+  padding: 12px;
+}
+
+.nc-muted {
+  color: var(--muted);
+}
+
+.nc-badgeRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.nc-badge {
+  font-size: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.07);
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.nc-badge.good {
+  border-color: rgba(34, 197, 94, 0.45);
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.nc-badge.warn {
+  border-color: rgba(245, 158, 11, 0.55);
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.nc-badge.bad {
+  border-color: rgba(239, 68, 68, 0.55);
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.nc-btnRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.nc-btn {
+  cursor: pointer;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.92);
+  font-weight: 650;
+}
+
+.nc-btn.primary {
+  background: linear-gradient(180deg, rgba(124, 58, 237, 0.95), rgba(124, 58, 237, 0.70));
+  border-color: rgba(124, 58, 237, 0.8);
+}
+
+.nc-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.nc-field {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.nc-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.nc-input,
+.nc-select {
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 10px 12px;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.nc-input:focus,
+.nc-select:focus {
+  outline: 2px solid rgba(124, 58, 237, 0.55);
+  outline-offset: 1px;
+}
+
+.nc-progressOuter {
+  height: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.nc-progressInner {
+  height: 100%;
+  background: linear-gradient(90deg, rgba(34, 197, 94, 0.8), rgba(124, 58, 237, 0.9));
+  width: 0%;
+}
+
+.nc-table {
+  width: 100%;
+  border-collapse: collapse;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.nc-table th,
+.nc-table td {
+  padding: 10px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+  text-align: left;
+  vertical-align: top;
+}
+
+.nc-table th {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 650;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.nc-pillRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.nc-pill {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.nc-issueCards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.nc-issueCard {
+  cursor: pointer;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 12px;
+}
+
+.nc-issueCard.selected {
+  border-color: rgba(124, 58, 237, 0.9);
+  background: rgba(124, 58, 237, 0.14);
+}
+
+.nc-issueRank {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.nc-issueTitle {
+  font-weight: 700;
+  line-height: 1.25;
+  margin-bottom: 10px;
+}
+
+.nc-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.nc-alert {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.nc-alertTitle {
+  font-weight: 750;
+  margin-bottom: 6px;
+}
+
+.nc-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.nc-tab {
+  cursor: pointer;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.nc-tab.active {
+  border-color: rgba(124, 58, 237, 0.9);
+  background: rgba(124, 58, 237, 0.14);
+}
+
+@media (max-width: 980px) {
+  .nc-layout {
+    grid-template-columns: 1fr;
+  }
+  .nc-left {
+    position: static;
+  }
+  .nc-grid {
+    grid-template-columns: 1fr;
+  }
+  .nc-issueCards {
+    grid-template-columns: 1fr;
+  }
+  .nc-split {
+    grid-template-columns: 1fr;
+  }
+}
+

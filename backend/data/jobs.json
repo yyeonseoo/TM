@@ -1,0 +1,24 @@
+{
+  "job_collect_654446af4a": {
+    "jobId": "job_collect_654446af4a",
+    "kind": "collect",
+    "runId": "run_20260427_210503",
+    "status": "error",
+    "progress": 100,
+    "message": "실패",
+    "createdAt": "2026-04-27T12:05:03.867531+00:00",
+    "updatedAt": "2026-04-27T12:05:04.645181+00:00",
+    "error": "NAVER_CLIENT_ID와 NAVER_CLIENT_SECRET을 환경변수 또는 Streamlit secrets에 설정해야 합니다."
+  },
+  "job_collect_22396ce5cd": {
+    "jobId": "job_collect_22396ce5cd",
+    "kind": "collect",
+    "runId": "run_20260427_210510",
+    "status": "error",
+    "progress": 100,
+    "message": "실패",
+    "createdAt": "2026-04-27T12:05:10.163030+00:00",
+    "updatedAt": "2026-04-27T12:05:10.169189+00:00",
+    "error": "NAVER_CLIENT_ID와 NAVER_CLIENT_SECRET을 환경변수 또는 Streamlit secrets에 설정해야 합니다."
+  }
+}

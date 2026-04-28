@@ -1,0 +1,19 @@
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+.Python
+.pytest_cache/
+
+# Local env files
+.env
+
+# Backend runtime outputs
+backend/data/runs/
+
+# Frontend dependencies/build output (also ignored in frontend/.gitignore)
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
