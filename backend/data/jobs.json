@@ -20,5 +20,27 @@
     "createdAt": "2026-04-27T12:05:10.163030+00:00",
     "updatedAt": "2026-04-27T12:05:10.169189+00:00",
     "error": "NAVER_CLIENT_ID와 NAVER_CLIENT_SECRET을 환경변수 또는 Streamlit secrets에 설정해야 합니다."
+  },
+  "job_collect_ff038c355f": {
+    "jobId": "job_collect_ff038c355f",
+    "kind": "collect",
+    "runId": "run_20260429_034220",
+    "status": "done",
+    "progress": 100,
+    "message": "완료",
+    "createdAt": "2026-04-28T18:42:20.860225+00:00",
+    "updatedAt": "2026-04-28T18:42:34.919165+00:00",
+    "error": null
+  },
+  "job_analyze_45b76bf342": {
+    "jobId": "job_analyze_45b76bf342",
+    "kind": "analyze",
+    "runId": "run_20260429_034220",
+    "status": "done",
+    "progress": 100,
+    "message": "완료",
+    "createdAt": "2026-04-28T18:46:07.718332+00:00",
+    "updatedAt": "2026-04-28T18:46:12.980158+00:00",
+    "error": null
   }
 }
