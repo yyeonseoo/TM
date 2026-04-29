@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api.runs import router as runs_router
 from backend.api.jobs import router as jobs_router
+from backend.features.issue_graph.router import router as issue_graph_router
 
 
 def _try_load_dotenv() -> None:
@@ -24,7 +25,10 @@ def create_app() -> FastAPI:
     _try_load_dotenv()
     app = FastAPI(title="News Consensus API", version="0.1.0")
 
-    cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",")
+    cors_origins = os.getenv(
+        "CORS_ORIGINS",
+        "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174",
+    ).split(",")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[origin.strip() for origin in cors_origins if origin.strip()],
@@ -35,6 +39,7 @@ def create_app() -> FastAPI:
 
     app.include_router(runs_router, prefix="/api")
     app.include_router(jobs_router, prefix="/api")
+    app.include_router(issue_graph_router, prefix="/api")
 
     return app
 
