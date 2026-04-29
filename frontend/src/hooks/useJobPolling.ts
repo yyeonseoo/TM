@@ -15,6 +15,11 @@ export function useJobPolling(jobId: string | null, options: PollingOptions) {
   const isTerminal = useMemo(() => job?.status === 'done' || job?.status === 'error', [job?.status])
 
   useEffect(() => {
+    setJob(null)
+    setError(null)
+  }, [jobId])
+
+  useEffect(() => {
     if (!options.enabled || !jobId) return
     const activeJobId = jobId
     let cancelled = false

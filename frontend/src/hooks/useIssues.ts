@@ -23,6 +23,12 @@ export function useIssues() {
     }
   }, [])
 
-  return { issues, loading, error, loadIssues }
+  const clearIssues = useCallback(() => {
+    setIssues([])
+    setError(null)
+    setLoading(false)
+  }, [])
+
+  return { issues, loading, error, loadIssues, clearIssues }
 }
 
