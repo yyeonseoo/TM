@@ -117,23 +117,25 @@ export function IssueTimelinePanel(props: { issue: Issue; runId: string | null }
         ))}
       </div>
 
-      {data?.articles?.length ? (
+      {data ? (
         <div style={{ marginTop: 16 }}>
           <div className="nc-subtitle" style={{ fontSize: 13 }}>
-            관련 기사 (샘플 · 최대 15건)
+            관련 기사 : {String(data.totalCount ?? 0).padStart(2, '0')}개
           </div>
-          <ul className="nc-list nc-listMuted" style={{ maxHeight: 220, overflow: 'auto', marginTop: 8 }}>
-            {data.articles.slice(0, 15).map((a, idx) => (
-              <li key={`${a.link}-${idx}`}>
-                <a href={a.link || a.originallink} target="_blank" rel="noreferrer">
-                  {a.title || '(제목 없음)'}
-                </a>
-                <span className="nc-muted" style={{ marginLeft: 8, fontSize: 11 }}>
-                  {a.date}
-                </span>
-              </li>
-            ))}
-          </ul>
+          {data.articles?.length ? (
+            <ul className="nc-list nc-listMuted" style={{ maxHeight: 220, overflow: 'auto', marginTop: 8 }}>
+              {data.articles.slice(0, 15).map((a, idx) => (
+                <li key={`${a.link}-${idx}`}>
+                  <a href={a.link || a.originallink} target="_blank" rel="noreferrer">
+                    {a.title || '(제목 없음)'}
+                  </a>
+                  <span className="nc-muted" style={{ marginLeft: 8, fontSize: 11 }}>
+                    {a.date}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </div>
       ) : null}
     </div>
