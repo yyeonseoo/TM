@@ -1,254 +1,320 @@
 import json
+import os
 import re
-from collections import Counter
-from collections import defaultdict
+from collections import Counter, defaultdict
+from difflib import SequenceMatcher
 
-from keybert import KeyBERT
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-from src.embedding import _get_model
+try:
+    from kiwipiepy import Kiwi
+except Exception:
+    Kiwi = None
 
 
-KOREAN_STOPWORDS = {
-    "\uae30\uc790",
-    "\ub274\uc2a4",
-    "\uad00\ub828",
-    "\uc9c0\ub09c",
-    "\uc774\ubc88",
-    "\ub300\ud55c",
-    "\ud1b5\ud574",
-    "\uc788\ub294",
-    "\ud588\ub2e4",
-    "\ud55c\ub2e4",
-    "\ub41c\ub2e4",
-    "\uc704\ud574",
-    "\uac83\uc73c\ub85c",
-    "\uadf8\ub9ac\uace0",
-}
-
-_KEYBERT = None
 TOKEN_PATTERN = r"(?u)\b[\uac00-\ud7a3A-Za-z0-9]{2,}\b"
-MAX_KEYBERT_CHARS = 5000
-PROPER_NOUN_RE = re.compile(r"[\uac00-\ud7a3A-Za-z0-9·]{2,20}")
-PROPER_NOUN_STOPWORDS = KOREAN_STOPWORDS | {
-    "\uac83\uc73c\ub85c",
-    "\uac83\uc740",
-    "\uac83\uc774",
-    "\uac83\uc744",
-    "\uc788\ub2e4",
-    "\uc5c6\ub2e4",
-    "\ub41c\ub2e4",
-    "\ud55c\ub2e4",
-    "\ud588\ub2e4",
-    "\ub9d0\ud588\ub2e4",
-    "\ubc1d\ud614\ub2e4",
-    "\uc804\ud588\ub2e4",
-    "\ub300\ud574",
-    "\uad00\ud574",
-    "\uc704\ud574",
-    "\ub4f1\uc744",
-    "\ub4f1\uc774",
-    "\ub4f1\uc5d0",
-    "\ucd9c\ub9c8",
-    "\uc120\uc5b8",
-    "\ucd9c\ub9c8\uc120\uc5b8",
-    "\ud6c4\ubcf4",
-    "\ubcf4\ub3c4",
-    "\uad00\ub828",
-    "\ub17c\ub780",
-    "\uc624\ub298",
-    "\uc5b4\uc81c",
-    "\uc774\ub0a0",
-    "\ud604\uc7ac",
-    "\uc774\ubc88",
-    "\uc9c0\ubc29\uc120\uac70",
-    "\ubcf4\uad90\uc120\uac70",
-    "\uacbd\uc120",
-    "\ud68c\uc758",
-    "\uc815\ubd80",
-    "\uc5ec\uc57c",
-    "\uc815\uce58",
-    "\uc0ac\uac74",
-    "\uc7ac\ud310",
-    "\ud56d\uc18c\uc2ec",
-    "\ud610\uc758",
-    "\uc120\uace0",
-    "\uc2dc\uc791",
-    "\ub0b4\ub780",
-    "\uc6b0\ub450\uba38\ub9ac",
-    "\ubb34\uae30\uc9d5\uc5ed",
-    "1\uc2ec",
-    "2\uc2ec",
-    "67\uc77c",
-    "\uc591\ub2f9",
-    "\uae30\ub4dd\uad8c",
-    "\ucc0d\uace0",
-    "\uc2f6\uc740",
-    "\uc800\ubc16\uc5d0",
-    "\uc9c0\uc5ed\uad6c",
-    "\uad6d\ud68c",
-    "\ub2f9\uc2dc",
-    "\uc0ac\ub78c",
-    "\ubd10\ub3c4",
-}
-PARTICLE_SUFFIXES = (
-    "\uc5d0\uc11c\ub294",
-    "\uc73c\ub85c\ub294",
-    "\uc73c\ub85c",
-    "\uc5d0\uc11c",
-    "\uc5d0\uac8c",
-    "\uae4c\uc9c0",
-    "\ubd80\ud130",
-    "\ubcf4\ub2e4",
-    "\ucc98\ub7fc",
-    "\ub77c\uace0",
-    "\uc774\ub77c",
-    "\uc640\uc758",
-    "\uacfc\uc758",
-    "\uc758",
-    "\uc740",
-    "\ub294",
-    "\uc774",
-    "\uac00",
-    "\uc744",
-    "\ub97c",
-    "\uacfc",
-    "\uc640",
-    "\ub3c4",
-    "\ub9cc",
-    "\uc5d0",
-    "\ub85c",
-)
-ORG_SUFFIXES = (
-    "\ub2f9",
-    "\uc2e0\ub2f9",
+KEYWORD_SCORING_MODE = os.getenv("KEYWORD_SCORING_MODE", "context").strip().lower()
+NOUN_TAGS = {"NNP", "NNG", "SL"}
+PREDICATE_TAGS = {"VV", "VA"}
+EMAIL_PATTERN = re.compile(r"[A-Za-z0-9._%+-]+\s*@\s*[A-Za-z0-9.-]+(?:\s*\.\s*[A-Za-z]{2,})+")
+URL_PATTERN = re.compile(r"https?://\S+|www\.\S+", re.IGNORECASE)
+BYLINE_PREFIX_PATTERN = re.compile(r"^\s*(?:[가-힣]{2,4}\s+){0,5}[가-힣]{2,4}\s+기자\s*=\s*")
+KEYWORD_WEAK_TOKENS = {
+    "\ub354\ubd88\uc5b4\ubbfc\uc8fc\ub2f9",
     "\ubbfc\uc8fc\ub2f9",
     "\uad6d\ubbfc\uc758\ud798",
-    "\uc815\ubd80",
-    "\uad6d\ud68c",
-    "\ubc95\uc6d0",
-    "\uac80\ucc30",
-    "\uccad\uc640\ub300",
-    "\uc704\uc6d0\ud68c",
-    "\uc7ac\ud310\ubd80",
-    "\uc120\uad00\uc704",
-)
-PLACE_SUFFIXES = ("\uc2dc", "\ub3c4", "\uad70", "\uad6c", "\ubd81\uac11", "\ub0a8\uac11", "\ubd81\uc744", "\ub0a8\uc744")
+    "\uac1c\ud601\uc2e0\ub2f9",
+    "\uc870\uad6d\ud601\uc2e0\ub2f9",
+    "\uc9c4\ubcf4\ub2f9",
+    "\uc5ec\ub2f9",
+    "\uc57c\ub2f9",
+    "\uc5ec\uc57c",
+    "\ubcf4\uc218",
+    "\uc9c4\ubcf4",
+    "\ubb34\uc18c\uc18d",
+    "\uc758\uc6d0",
+    "\ud6c4\ubcf4",
+    "\uc608\ube44\ud6c4\ubcf4",
+    "\uae30\uc790",
+    "\ub274\uc2a4",
+    "\uc5f0\ud569\ub274\uc2a4",
+    "sns",
+}
+_KIWI = None
 
 
 def _json(value):
     return json.dumps(value, ensure_ascii=False)
 
 
-def _get_keybert():
-    global _KEYBERT
-    if _KEYBERT is None:
-        _KEYBERT = KeyBERT(model=_get_model())
-    return _KEYBERT
+def _get_kiwi():
+    global _KIWI
+    if Kiwi is None:
+        return None
+    if _KIWI is None:
+        _KIWI = Kiwi()
+    return _KIWI
 
 
-def _tfidf_keywords(texts, top_n=6):
-    text = " ".join(str(text) for text in texts if str(text).strip())
-    if not text:
-        return []
-
-    try:
-        vectorizer = TfidfVectorizer(max_features=top_n, token_pattern=TOKEN_PATTERN)
-        matrix = vectorizer.fit_transform([text])
-        if matrix.shape[1] == 0:
-            return []
-        return vectorizer.get_feature_names_out().tolist()
-    except ValueError:
-        return []
+def _compact(text):
+    return re.sub(r"[\s\W_]+", "", str(text).lower())
 
 
-def _strip_particle(token):
-    token = token.strip(" ·,.;:!?\"'“”‘’[](){}<>")
-    for suffix in PARTICLE_SUFFIXES:
-        if token.endswith(suffix) and len(token) > len(suffix) + 1:
-            return token[: -len(suffix)]
-    return token
+def _is_numeric_noise(text):
+    compacted = _compact(text)
+    return bool(compacted) and all(ch.isdigit() for ch in compacted)
 
 
-def _looks_like_proper_noun(token, from_title=False):
-    token = _strip_particle(token)
-    if len(token) < 2 or token in PROPER_NOUN_STOPWORDS:
+def _clean_candidate(text):
+    return str(text).strip(" \u00b7,.;:!?\"'\u2018\u2019\u201c\u201d[](){}<>")
+
+
+def _strip_contact_artifacts(text):
+    text = URL_PATTERN.sub(" ", str(text))
+    text = EMAIL_PATTERN.sub(" ", text)
+    text = BYLINE_PREFIX_PATTERN.sub(" ", text)
+    return text
+
+
+def _is_ascii_fragment_noise(text):
+    candidate = _clean_candidate(text)
+    if not re.fullmatch(r"[A-Za-z0-9._%+-]+", candidate):
         return False
-    if re.fullmatch(r"\d+\uc2ec|\d+\uc77c|\d+\ub144|\d+\uc6d4|\d+\uc2dc|\d+\ubd80|[A-Za-z]*\d+\ubd80", token):
-        return False
-    if re.search(r"\d", token) and "·" not in token:
-        return False
-    if token.endswith(("\ub2e4", "\ud55c", "\ud558\ub294", "\ub418\ub294", "\uc788\ub294", "\uc5c6\ub294")):
-        return False
-    if token.endswith(("\uace0", "\uba70", "\uba74", "\ub4ef", "\ubfd0", "\ubc16", "\uc2f6\uc740", "\ucc0d\uace0")):
-        return False
-    if any(token.endswith(suffix) for suffix in ORG_SUFFIXES):
+    if any(ch.isdigit() for ch in candidate):
         return True
-    if any(token.endswith(suffix) for suffix in PLACE_SUFFIXES) and len(token) <= 6:
-        return True
-    if re.search(r"[A-Za-z0-9]", token):
-        return True
-    if from_title and 2 <= len(token) <= 4:
-        return True
-    return False
+    return candidate.islower()
 
 
-def _proper_noun_candidates(text, from_title=False):
+def _is_keyword_noise(text):
+    candidate = _clean_candidate(text)
+    return (
+        not candidate
+        or _is_numeric_noise(candidate)
+        or EMAIL_PATTERN.fullmatch(candidate) is not None
+        or _is_ascii_fragment_noise(candidate)
+    )
+
+
+def _normalize_predicate(text):
+    """Return predicate lemmas when a non-noun fallback ever needs normalization."""
+    kiwi = _get_kiwi()
+    if kiwi is None:
+        return str(text)
+
+    lemmas = []
+    for token in kiwi.tokenize(str(text)):
+        if token.tag in PREDICATE_TAGS:
+            lemmas.append(getattr(token, "lemma", token.form))
+    return " ".join(lemmas) if lemmas else str(text)
+
+
+def _accept_noun_phrase(forms, tags, from_title):
+    if not forms:
+        return None
+
+    candidate = _clean_candidate("".join(forms))
+    if len(candidate) < 2 or _is_keyword_noise(candidate):
+        return None
+
+    noun_count = sum(1 for tag in tags if tag in {"NNP", "NNG", "SL"})
+    has_proper_signal = any(tag in {"NNP", "SL"} for tag in tags)
+
+    # NNP/SL is accepted directly. Pure common-noun phrases must be compound and
+    # long enough, which catches names like "국방성중앙군악단" while dropping
+    # short generic words like "관심", "없어", "표시", "나래".
+    if has_proper_signal:
+        return candidate
+    if from_title and noun_count >= 2 and len(candidate) >= 4:
+        return candidate
+    if noun_count >= 3 and len(candidate) >= 5:
+        return candidate
+    return None
+
+
+def _kiwi_keyword_candidates(text, from_title=False):
+    kiwi = _get_kiwi()
+    if kiwi is None:
+        return None
+
     candidates = []
-    for token in PROPER_NOUN_RE.findall(str(text)):
-        token = _strip_particle(token)
-        if _looks_like_proper_noun(token, from_title=from_title):
+    for chunk in re.findall(r"[\uac00-\ud7a3A-Za-z0-9\u00b7]+", _strip_contact_artifacts(text)):
+        forms = []
+        tags = []
+
+        def flush():
+            nonlocal forms, tags
+            candidate = _accept_noun_phrase(forms, tags, from_title=from_title)
+            if candidate:
+                candidates.append(candidate)
+            forms = []
+            tags = []
+
+        for token in kiwi.tokenize(chunk):
+            if token.tag in NOUN_TAGS:
+                forms.append(token.form)
+                tags.append(token.tag)
+            elif token.tag == "XSN" and forms:
+                forms.append(token.form)
+                tags.append(token.tag)
+            elif token.tag in {"NNB", "NR"} and forms and any(tag == "NNP" for tag in tags):
+                forms.append(token.form)
+                tags.append(token.tag)
+            else:
+                flush()
+        flush()
+
+    return list(dict.fromkeys(candidates))
+
+
+def _regex_keyword_candidates(text):
+    candidates = []
+    for token in re.findall(r"[\uac00-\ud7a3A-Za-z0-9\u00b7]{2,20}", _strip_contact_artifacts(text)):
+        token = _clean_candidate(token)
+        if len(token) >= 4 and not _is_keyword_noise(token):
             candidates.append(token)
-    return candidates
+    return list(dict.fromkeys(candidates))
 
 
-def _proper_noun_keywords(records, top_n=6):
-    counts = Counter()
-    press_names = {str(record.get("press", "")).strip() for record in records}
+def _keyword_candidates(text, from_title=False):
+    candidates = _kiwi_keyword_candidates(text, from_title=from_title)
+    if candidates is not None:
+        return candidates
+    return _regex_keyword_candidates(text)
+
+
+def _is_near_duplicate(left, right):
+    left_key = _compact(left)
+    right_key = _compact(right)
+    if not left_key or not right_key:
+        return False
+    if left_key in right_key or right_key in left_key:
+        return True
+    ratio = SequenceMatcher(None, left_key, right_key).ratio()
+    shared_edge = left_key[:2] == right_key[:2] or left_key[-2:] == right_key[-2:]
+    return ratio >= 0.72 and shared_edge
+
+
+def _dedupe_keywords(scored_candidates, top_n):
+    selected = []
+    for candidate, score in sorted(scored_candidates.items(), key=lambda item: (item[1], len(item[0])), reverse=True):
+        duplicate_index = None
+        for index, (existing, existing_score) in enumerate(selected):
+            if _is_near_duplicate(candidate, existing):
+                duplicate_index = index
+                if score > existing_score or (score == existing_score and len(candidate) > len(existing)):
+                    selected[index] = (candidate, score)
+                break
+        if duplicate_index is not None:
+            continue
+        selected.append((candidate, score))
+        if len(selected) >= top_n:
+            break
+    return [candidate for candidate, _ in selected[:top_n]]
+
+
+def _candidate_occurs(candidate, text):
+    candidate_key = _compact(candidate)
+    text_key = _compact(text)
+    return bool(candidate_key and candidate_key in text_key)
+
+
+def _is_weak_keyword(candidate):
+    return _compact(candidate) in {_compact(token) for token in KEYWORD_WEAK_TOKENS}
+
+
+def _legacy_proper_noun_keywords(records, top_n=6):
+    """Extract keywords from titles and body evidence using POS structure, not hardcoded stopwords."""
+    scores = Counter()
+    article_hits = defaultdict(set)
+    press_names = {_compact(record.get("press", "")) for record in records}
+
     seen_titles = set()
     for record in records:
         title = str(record.get("title", "")).strip()
         if title and title not in seen_titles:
             seen_titles.add(title)
-            for candidate in _proper_noun_candidates(title, from_title=True):
-                counts[candidate] += 3
+            for candidate in _keyword_candidates(title, from_title=True):
+                if _compact(candidate) not in press_names:
+                    scores[candidate] += 5
+                    article_hits[candidate].add(record.get("article_id"))
 
-    for sentence in _top_tfidf_sentences(records, limit=20):
-        for candidate in _proper_noun_candidates(sentence, from_title=False):
-            counts[candidate] += 1
+    for rank, sentence in enumerate(_top_tfidf_sentences(records, limit=24), start=1):
+        weight = max(1, 6 - (rank // 4))
+        owner_ids = [record.get("article_id") for record in records if record.get("sentence") == sentence]
+        owner_id = owner_ids[0] if owner_ids else None
+        for candidate in _keyword_candidates(sentence, from_title=False):
+            if _compact(candidate) in press_names:
+                continue
+            scores[candidate] += weight
+            if owner_id is not None:
+                article_hits[candidate].add(owner_id)
 
-    selected = []
-    for candidate, _ in counts.most_common():
-        if candidate in press_names:
-            continue
-        if any(candidate in item or item in candidate for item in selected):
-            continue
-        selected.append(candidate)
-        if len(selected) >= top_n:
-            break
-    return selected
+    for candidate, hits in article_hits.items():
+        scores[candidate] += 2 * len(hits)
+
+    return _dedupe_keywords(scores, top_n=top_n)
 
 
-def _keybert_keywords(texts, top_n=6):
-    text = " ".join(str(text) for text in texts if str(text).strip())[:MAX_KEYBERT_CHARS]
-    if not text:
-        return []
+def _contextual_proper_noun_keywords(records, top_n=6):
+    """Rank source-bound proper nouns by title presence, evidence context, and article coverage."""
+    scores = defaultdict(float)
+    article_hits = defaultdict(set)
+    title_hits = Counter()
+    evidence_hits = Counter()
+    press_names = {_compact(record.get("press", "")) for record in records}
 
-    try:
-        keywords = _get_keybert().extract_keywords(
-            text,
-            keyphrase_ngram_range=(1, 2),
-            stop_words=list(KOREAN_STOPWORDS),
-            top_n=top_n,
-        )
-        result = [keyword for keyword, _ in keywords]
-        if result:
-            return result
-    except Exception:
-        pass
+    seen_titles = set()
+    title_items = []
+    for record in records:
+        title = str(record.get("title", "")).strip()
+        if title and title not in seen_titles:
+            seen_titles.add(title)
+            title_items.append((title, record.get("article_id")))
 
-    return _tfidf_keywords(texts, top_n=top_n)
+    for title, article_id in title_items:
+        for candidate in _keyword_candidates(title, from_title=True):
+            if _compact(candidate) in press_names:
+                continue
+            scores[candidate] += 7
+            title_hits[candidate] += 1
+            article_hits[candidate].add(article_id)
+
+    salient_sentences = _top_tfidf_sentences(records, limit=32)
+    for rank, sentence in enumerate(salient_sentences, start=1):
+        weight = max(1.0, 7.0 - (rank * 0.25))
+        owner_ids = [record.get("article_id") for record in records if record.get("sentence") == sentence]
+        owner_id = owner_ids[0] if owner_ids else None
+        for candidate in _keyword_candidates(sentence, from_title=False):
+            if _compact(candidate) in press_names:
+                continue
+            scores[candidate] += weight
+            evidence_hits[candidate] += 1
+            if owner_id is not None:
+                article_hits[candidate].add(owner_id)
+
+    context_texts = [title for title, _ in title_items] + salient_sentences
+    article_count = max(1, len({record.get("article_id") for record in records}))
+    adjusted_scores = {}
+    for candidate, raw_score in scores.items():
+        coverage = len(article_hits[candidate])
+        context_count = sum(1 for text in context_texts if _candidate_occurs(candidate, text))
+        if coverage <= 1 and not title_hits[candidate] and article_count >= 3:
+            raw_score *= 0.45
+
+        coverage_bonus = 1 + min(0.75, coverage / article_count)
+        context_bonus = 1 + min(0.40, context_count / max(4, len(context_texts)))
+        title_bonus = 1.25 if title_hits[candidate] else 1.0
+        weak_penalty = 0.62 if _is_weak_keyword(candidate) and not title_hits[candidate] else 1.0
+        adjusted_scores[candidate] = raw_score * coverage_bonus * context_bonus * title_bonus * weak_penalty
+
+    return _dedupe_keywords(adjusted_scores, top_n=top_n)
+
+
+def _proper_noun_keywords(records, top_n=6):
+    if KEYWORD_SCORING_MODE == "legacy":
+        return _legacy_proper_noun_keywords(records, top_n=top_n)
+    return _contextual_proper_noun_keywords(records, top_n=top_n)
 
 
 def _top_tfidf_sentences(records, limit=5):
@@ -307,7 +373,6 @@ def _common_fact_sentences(records, limit=5):
             common.append(sentence)
         if len(common) >= limit:
             break
-
     return common
 
 
@@ -383,7 +448,6 @@ def analyze_issues(clusters, max_issues=3):
 
     for rank, cluster in enumerate(eligible_clusters[:max_issues], start=1):
         records = cluster["records"]
-        sentences = [record["sentence"] for record in records]
         keywords = _proper_noun_keywords(records, top_n=8)
         common_facts = _common_fact_sentences(records, limit=5)
         controversy_clusters = _controversy_clusters(records, limit=3)

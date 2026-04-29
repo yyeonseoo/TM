@@ -16,7 +16,7 @@ export function NewsConsensusPage() {
   const { runId, collectJobId, analyzeJobId, error: runError, setError: setRunError, createRun, startAnalyze } = useRun()
   const collect = useJobPolling(collectJobId, { enabled: Boolean(collectJobId) })
   const analyze = useJobPolling(analyzeJobId, { enabled: Boolean(analyzeJobId) })
-  const { issues, loadIssues, loading: issuesLoading, error: issuesError } = useIssues()
+  const { issues, loadIssues, clearIssues, loading: issuesLoading, error: issuesError } = useIssues()
 
   const [categoryFilter, setCategoryFilter] = useState('politics')
   const [targetCount, setTargetCount] = useState(30)
@@ -65,6 +65,7 @@ export function NewsConsensusPage() {
   async function onCollect() {
     setRunError(null)
     setArticles([])
+    clearIssues()
     setSelectedIssueId(null)
     await createRun({ categoryFilter, targetCount, linkPoolSize })
   }
@@ -129,7 +130,7 @@ export function NewsConsensusPage() {
 
           <section className="nc-section">
             <div className="nc-sectionTitle">이슈 상세</div>
-            <IssueDetailPanel issue={selectedIssue} />
+            <IssueDetailPanel issue={selectedIssue} runId={runId} />
           </section>
         </main>
       </div>

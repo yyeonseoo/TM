@@ -3,6 +3,7 @@ import type {
   ArticlesResponse,
   CreateRunRequest,
   CreateRunResponse,
+  IssueTimeseriesResponse,
   IssuesResponse,
   JobStatusResponse,
 } from '../types/news'
@@ -48,6 +49,15 @@ export const newsConsensusApi = {
   },
   getIssues(runId: string) {
     return requestJson<IssuesResponse>(`/api/runs/${encodeURIComponent(runId)}/issues`)
+  },
+  getIssueTimeseries(runId: string, keyword: string, display = 100) {
+    const q = new URLSearchParams({
+      keyword,
+      display: String(Math.min(100, Math.max(1, display))),
+    })
+    return requestJson<IssueTimeseriesResponse>(
+      `/api/runs/${encodeURIComponent(runId)}/issues/timeseries?${q.toString()}`,
+    )
   },
 }
 
