@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { Issue } from '../../types/news'
 
 type GraphNodeType = 'issue' | 'keyword' | 'press'
-type GraphEdgeType = 'issue-keyword' | 'issue-press'
+type GraphEdgeType = 'issue-keyword' | 'issue-press' | 'keyword-relation'
 
 type GraphNode = {
   id: string
@@ -18,6 +18,8 @@ type GraphEdge = {
   from: string
   to: string
   type?: GraphEdgeType
+  label?: string | null
+  evidence?: string[]
   weight?: number
 }
 
@@ -32,21 +34,21 @@ function apiBase(): string {
 }
 
 function fallbackGraph(issue: Issue): IssueGraph {
-  const centerId = `issue:${issue.issueId}`
-  const nodes: GraphNode[] = [{ id: centerId, label: issue.title, type: 'issue', weight: 2 }]
-  const edges: GraphEdge[] = []
+  const keywords = (issue.keywords ?? []).slice(0, 10)
+  const nodes: GraphNode[] = keywords.map((keyword) => ({
+    id: `kw:${keyword}`,
+    label: keyword,
+    type: 'keyword',
+    weight: 1.4,
+  }))
 
-  for (const keyword of (issue.keywords ?? []).slice(0, 10)) {
-    const id = `kw:${keyword}`
-    nodes.push({ id, label: keyword, type: 'keyword', weight: 1.4 })
-    edges.push({ from: centerId, to: id, type: 'issue-keyword' })
-  }
-
-  for (const press of (issue.pressData ?? []).map((pressData) => pressData.press).filter(Boolean).slice(0, 8)) {
-    const id = `press:${press}`
-    nodes.push({ id, label: press, type: 'press' })
-    edges.push({ from: centerId, to: id, type: 'issue-press' })
-  }
+  const edges: GraphEdge[] = nodes.slice(0, -1).map((node, index) => ({
+    from: node.id,
+    to: nodes[index + 1].id,
+    type: 'keyword-relation',
+    label: '관련',
+    weight: 0.5,
+  }))
 
   return { issueId: issue.issueId, nodes, edges }
 }
@@ -61,6 +63,8 @@ async function fetchImageGraph(issue: Issue): Promise<IssueGraph> {
       title: issue.title,
       keywords: issue.keywords ?? [],
       presses,
+      evidenceSentences: issue.evidenceSentences ?? [],
+      commonFacts: issue.commonFacts ?? [],
     }),
   })
 
@@ -72,20 +76,23 @@ async function fetchImageGraph(issue: Issue): Promise<IssueGraph> {
 }
 
 function nodeRadius(node: GraphNode) {
-  if (node.type === 'issue') return 34
   if (node.type === 'keyword' && node.thumbnailUrl) return 26
   if (node.type === 'keyword') return 19
   return 17
 }
 
 function nodeStyle(node: GraphNode): { fill: string; stroke: string } {
-  if (node.type === 'issue') return { fill: 'rgba(11,42,85,0.95)', stroke: 'rgba(47,116,192,0.45)' }
   if (node.type === 'press') return { fill: 'rgba(57,166,198,0.16)', stroke: 'rgba(57,166,198,0.35)' }
   return { fill: 'rgba(47,116,192,0.12)', stroke: 'rgba(47,116,192,0.32)' }
 }
 
 function edgeStroke() {
   return 'url(#edgeGrad)'
+}
+
+function edgeLabel(edge: GraphEdge) {
+  if (edge.type === 'keyword-relation') return edge.label ?? '관련'
+  return edge.label ?? null
 }
 
 function labelFor(node: GraphNode) {
@@ -100,13 +107,10 @@ function buildPositions(graph: IssueGraph, width: number, height: number) {
   const cx = width / 2
   const cy = height / 2
   const positions = new Map<string, { x: number; y: number }>()
-  const center = graph.nodes.find((node) => node.type === 'issue') ?? graph.nodes[0]
-  positions.set(center.id, { x: cx, y: cy })
 
-  const relatedNodes = graph.nodes.filter((node) => node.id !== center.id)
-  const radius = Math.min(width, height) * 0.33
-  relatedNodes.forEach((node, index) => {
-    const angle = (index / Math.max(1, relatedNodes.length)) * Math.PI * 2 - Math.PI / 2
+  const radius = Math.min(width, height) * 0.36
+  graph.nodes.forEach((node, index) => {
+    const angle = (index / Math.max(1, graph.nodes.length)) * Math.PI * 2 - Math.PI / 2
     positions.set(node.id, {
       x: cx + Math.cos(angle) * radius,
       y: cy + Math.sin(angle) * radius,
@@ -114,6 +118,21 @@ function buildPositions(graph: IssueGraph, width: number, height: number) {
   })
 
   return positions
+}
+
+function edgeEndpoints(from: { x: number; y: number }, to: { x: number; y: number }, fromRadius: number, toRadius: number) {
+  const dx = to.x - from.x
+  const dy = to.y - from.y
+  const length = Math.hypot(dx, dy) || 1
+  const ux = dx / length
+  const uy = dy / length
+
+  return {
+    x1: from.x + ux * fromRadius,
+    y1: from.y + uy * fromRadius,
+    x2: to.x - ux * toRadius,
+    y2: to.y - uy * toRadius,
+  }
 }
 
 export function IssueGraphPanel(props: { issue: Issue }) {
@@ -151,10 +170,10 @@ export function IssueGraphPanel(props: { issue: Issue }) {
     <div className="nc-graphWrap">
       <div className="nc-muted" style={{ fontSize: 12 }}>
         {status === 'ready'
-          ? 'Representative keyword images are displayed inside keyword nodes.'
+          ? 'Keyword nodes are connected by relation edges extracted from evidence sentences.'
           : status === 'loading'
-            ? 'Loading keyword image graph...'
-            : 'Image graph API is unavailable, showing the local issue graph.'}
+            ? 'Loading keyword relation graph...'
+            : 'Relation graph API is unavailable, showing local keyword relations.'}
       </div>
 
       <div className="nc-graphStage" role="img" aria-label="issue relationship graph">
@@ -175,18 +194,36 @@ export function IssueGraphPanel(props: { issue: Issue }) {
           {graph.edges.map((edge) => {
             const from = positions.get(edge.from)
             const to = positions.get(edge.to)
-            if (!from || !to) return null
+            const fromNode = graph.nodes.find((node) => node.id === edge.from)
+            const toNode = graph.nodes.find((node) => node.id === edge.to)
+            if (!from || !to || !fromNode || !toNode) return null
+            const endpoint = edgeEndpoints(from, to, nodeRadius(fromNode), nodeRadius(toNode))
             return (
-              <line
-                key={`${edge.from}->${edge.to}-${edge.type ?? 'edge'}`}
-                x1={from.x}
-                y1={from.y}
-                x2={to.x}
-                y2={to.y}
-                stroke={edgeStroke()}
-                strokeWidth="1.5"
-                opacity="0.72"
-              />
+              <g key={`${edge.from}->${edge.to}-${edge.type ?? 'edge'}-${edge.label ?? ''}`}>
+                <line
+                  x1={endpoint.x1}
+                  y1={endpoint.y1}
+                  x2={endpoint.x2}
+                  y2={endpoint.y2}
+                  stroke={edgeStroke()}
+                  strokeWidth={edge.type === 'keyword-relation' ? 2.4 : 2}
+                  opacity={edge.type === 'keyword-relation' ? 0.86 : 0.78}
+                />
+                {edgeLabel(edge) ? (
+                  <text
+                    x={(endpoint.x1 + endpoint.x2) / 2}
+                    y={(endpoint.y1 + endpoint.y2) / 2 - 4}
+                    textAnchor="middle"
+                    fontSize="9"
+                    fill="rgba(12,20,34,0.64)"
+                    paintOrder="stroke"
+                    stroke="rgba(255,255,255,0.9)"
+                    strokeWidth="3"
+                  >
+                    {edgeLabel(edge)}
+                  </text>
+                ) : null}
+              </g>
             )
           })}
 
@@ -212,11 +249,6 @@ export function IssueGraphPanel(props: { issue: Issue }) {
                 ) : (
                   <circle cx={position.x} cy={position.y} r={radius} fill={style.fill} stroke={style.stroke} strokeWidth="1.5" />
                 )}
-                {node.type === 'issue' ? (
-                  <text x={position.x} y={position.y} textAnchor="middle" dominantBaseline="middle" fontSize="11" fill="rgba(255,255,255,0.95)">
-                    ISSUE
-                  </text>
-                ) : null}
                 {hasKeywordImage ? (
                   <circle cx={position.x} cy={position.y} r={radius} fill="none" stroke={style.stroke} strokeWidth="2" />
                 ) : null}

@@ -10,6 +10,8 @@ class IssueGraphRequest(BaseModel):
     title: str
     keywords: list[str] = Field(default_factory=list)
     presses: list[str] = Field(default_factory=list)
+    evidenceSentences: list[str] = Field(default_factory=list)
+    commonFacts: list[str] = Field(default_factory=list)
 
 
 class IssueGraphNode(BaseModel):
@@ -27,7 +29,9 @@ class IssueGraphEdge(BaseModel):
 
     from_: str = Field(alias="from")
     to: str
-    type: Literal["issue-keyword", "issue-press"]
+    type: Literal["issue-keyword", "issue-press", "keyword-relation"]
+    label: Optional[str] = None
+    evidence: list[str] = Field(default_factory=list)
     weight: float = 1.0
 
 
