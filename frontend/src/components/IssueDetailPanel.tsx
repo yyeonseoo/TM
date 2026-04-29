@@ -7,8 +7,9 @@ import { IssueTimelinePanel } from '../features/issueTimeline/IssueTimelinePanel
 
 type TabKey = 'facts' | 'compare' | 'evidence' | 'graph' | 'timeline'
 
-export function IssueDetailPanel(props: { issue: Issue | null }) {
+export function IssueDetailPanel(props: { issue: Issue | null; runId: string | null }) {
   const issue = props.issue
+  const runId = props.runId
   const [tab, setTab] = useState<TabKey>('facts')
 
   const evidence = useMemo(() => (issue?.evidenceSentences ?? []).filter(Boolean), [issue?.evidenceSentences])
@@ -96,7 +97,7 @@ export function IssueDetailPanel(props: { issue: Issue | null }) {
         {tab === 'timeline' ? (
           <div className="nc-stack">
             <div className="nc-subtitle">이슈 시계열</div>
-            <IssueTimelinePanel issue={issue} />
+            <IssueTimelinePanel issue={issue} runId={runId} />
           </div>
         ) : null}
 

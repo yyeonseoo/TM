@@ -129,7 +129,7 @@ export function NewsConsensusPage() {
 
           <section className="nc-section">
             <div className="nc-sectionTitle">이슈 상세</div>
-            <IssueDetailPanel issue={selectedIssue} />
+            <IssueDetailPanel issue={selectedIssue} runId={runId} />
           </section>
         </main>
       </div>

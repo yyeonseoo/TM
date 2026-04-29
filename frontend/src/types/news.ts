@@ -70,3 +70,25 @@ export type IssuesResponse = {
   issues: Issue[]
 }
 
+export type TimeseriesPoint = {
+  date: string
+  count: number
+}
+
+export type TimeseriesArticle = {
+  title: string
+  description: string
+  link: string
+  originallink: string
+  pubDate: string
+  date: string
+}
+
+export type IssueTimeseriesResponse = {
+  runId: string
+  keyword: string
+  totalCount: number
+  series: TimeseriesPoint[]
+  articles: TimeseriesArticle[]
+}
+
