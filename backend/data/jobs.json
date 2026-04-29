@@ -108,5 +108,93 @@
     "createdAt": "2026-04-29T01:15:18.002187+00:00",
     "updatedAt": "2026-04-29T01:16:36.340903+00:00",
     "error": null
+  },
+  "job_collect_8484eb8dd7": {
+    "jobId": "job_collect_8484eb8dd7",
+    "kind": "collect",
+    "runId": "run_20260429_104855",
+    "status": "done",
+    "progress": 100,
+    "message": "완료",
+    "createdAt": "2026-04-29T01:48:55.416615+00:00",
+    "updatedAt": "2026-04-29T01:51:06.696257+00:00",
+    "error": null
+  },
+  "job_analyze_bec6e7ab03": {
+    "jobId": "job_analyze_bec6e7ab03",
+    "kind": "analyze",
+    "runId": "run_20260429_104855",
+    "status": "done",
+    "progress": 100,
+    "message": "완료",
+    "createdAt": "2026-04-29T01:51:53.912250+00:00",
+    "updatedAt": "2026-04-29T01:56:50.402730+00:00",
+    "error": null
+  },
+  "job_analyze_c02ba426d6": {
+    "jobId": "job_analyze_c02ba426d6",
+    "kind": "analyze",
+    "runId": "run_20260429_104855",
+    "status": "done",
+    "progress": 100,
+    "message": "완료",
+    "createdAt": "2026-04-29T02:13:55.260898+00:00",
+    "updatedAt": "2026-04-29T02:21:18.159899+00:00",
+    "error": null
+  },
+  "job_analyze_c5c4e28749": {
+    "jobId": "job_analyze_c5c4e28749",
+    "kind": "analyze",
+    "runId": "run_20260429_104855",
+    "status": "done",
+    "progress": 100,
+    "message": "완료",
+    "createdAt": "2026-04-29T02:41:16.467362+00:00",
+    "updatedAt": "2026-04-29T02:46:50.589512+00:00",
+    "error": null
+  },
+  "job_analyze_f0fb31469e": {
+    "jobId": "job_analyze_f0fb31469e",
+    "kind": "analyze",
+    "runId": "run_20260429_104855",
+    "status": "done",
+    "progress": 100,
+    "message": "완료",
+    "createdAt": "2026-04-29T02:56:02.232307+00:00",
+    "updatedAt": "2026-04-29T03:01:07.626086+00:00",
+    "error": null
+  },
+  "job_analyze_27b74b9e92": {
+    "jobId": "job_analyze_27b74b9e92",
+    "kind": "analyze",
+    "runId": "run_20260429_104855",
+    "status": "done",
+    "progress": 100,
+    "message": "완료",
+    "createdAt": "2026-04-29T03:15:17.834012+00:00",
+    "updatedAt": "2026-04-29T03:16:32.777481+00:00",
+    "error": null
+  },
+  "job_analyze_9eb8c6aa33": {
+    "jobId": "job_analyze_9eb8c6aa33",
+    "kind": "analyze",
+    "runId": "run_20260429_104855",
+    "status": "error",
+    "progress": 100,
+    "message": "실패",
+    "createdAt": "2026-04-29T03:38:35.643434+00:00",
+    "updatedAt": "2026-04-29T03:42:58.805193+00:00",
+    "error": "1"
+  },
+  "job_analyze_7b543bc721": {
+    "jobId": "job_analyze_7b543bc721",
+    "kind": "analyze",
+    "runId": "run_20260429_104855",
+    "status": "done",
+    "progress": 100,
+    "message": "완료",
+    "createdAt": "2026-04-29T03:47:02.990646+00:00",
+    "updatedAt": "2026-04-29T03:52:59.207309+00:00",
+    "error": null
   }
 }
