@@ -52,17 +52,54 @@ export function IssueGraphPanel(props: { issue: Issue; runId: string | null }) {
 
   const graph = useMemo(() => data ?? { nodes: [], edges: [] }, [data])
 
+  // Keyword-only graph: connect keywords that co-occur under the same press node.
+  const kwGraph = useMemo(() => {
+    const keywordNodes = graph.nodes.filter((n) => (n.kind ?? '') === 'keyword')
+    const keywordIds = new Set(keywordNodes.map((n) => n.id))
+
+    const pressToKws = new Map<string, string[]>()
+    for (const e of graph.edges) {
+      const aIsPress = e.from.startsWith('press:')
+      const bIsPress = e.to.startsWith('press:')
+      const aIsKw = e.from.startsWith('kw:')
+      const bIsKw = e.to.startsWith('kw:')
+      if (aIsPress && bIsKw) {
+        pressToKws.set(e.from, [...(pressToKws.get(e.from) ?? []), e.to])
+      } else if (bIsPress && aIsKw) {
+        pressToKws.set(e.to, [...(pressToKws.get(e.to) ?? []), e.from])
+      }
+    }
+
+    const pairW = new Map<string, number>()
+    for (const [, kws] of pressToKws) {
+      const uniq = Array.from(new Set(kws)).filter((id) => keywordIds.has(id))
+      for (let i = 0; i < uniq.length; i++) {
+        for (let j = i + 1; j < uniq.length; j++) {
+          const u = uniq[i]!
+          const v = uniq[j]!
+          const key = u < v ? `${u}|${v}` : `${v}|${u}`
+          pairW.set(key, (pairW.get(key) ?? 0) + 1)
+        }
+      }
+    }
+
+    const edges: UiEdge[] = Array.from(pairW.entries()).map(([k, w]) => {
+      const [u, v] = k.split('|')
+      return { from: u!, to: v!, weight: w, kind: 'kw-kw' }
+    })
+
+    return { nodes: keywordNodes, edges }
+  }, [graph.nodes, graph.edges])
+
   // Minimal SVG scaffold: center node + circle layout for related nodes.
   const w = 720
   const h = 360
   const cx = w / 2
   const cy = h / 2
-  const center = graph.nodes.find((n) => n.kind === 'issue') ?? graph.nodes[0] ?? null
-  const others = center ? graph.nodes.filter((n) => n.id !== center.id) : graph.nodes
+  const others = kwGraph.nodes
   const r = Math.min(w, h) * 0.33
 
   const pos = new Map<string, { x: number; y: number }>()
-  if (center) pos.set(center.id, { x: cx, y: cy })
   others.forEach((n, i) => {
     const t = (i / Math.max(1, others.length)) * Math.PI * 2
     pos.set(n.id, { x: cx + Math.cos(t) * r, y: cy + Math.sin(t) * r })
@@ -71,7 +108,7 @@ export function IssueGraphPanel(props: { issue: Issue; runId: string | null }) {
   return (
     <div className="nc-graphWrap">
       <div className="nc-muted" style={{ fontSize: 12 }}>
-        관계 그래프 · API 기반(weighted graph)
+        관계 그래프 · 키워드만 표시 (언론사 기반 co-occurrence)
       </div>
       {error ? (
         <div className="nc-alert" style={{ marginTop: 10 }}>
@@ -89,7 +126,7 @@ export function IssueGraphPanel(props: { issue: Issue; runId: string | null }) {
             </linearGradient>
           </defs>
 
-          {graph.edges.map((e) => {
+          {kwGraph.edges.map((e) => {
             const a = pos.get(e.from)
             const b = pos.get(e.to)
             if (!a || !b) return null
@@ -101,37 +138,20 @@ export function IssueGraphPanel(props: { issue: Issue; runId: string | null }) {
                 x2={b.x}
                 y2={b.y}
                 stroke="url(#edgeGrad)"
-                strokeWidth={1.2 + Math.min(2.2, (e.weight ?? 0) * 2)}
-                opacity="0.7"
+                strokeWidth={0.8 + Math.min(3.2, (e.weight ?? 0) * 1.2)}
+                opacity="0.55"
               />
             )
           })}
-
-          {/* Center */}
-          {center ? (
-            <>
-              <circle
-                cx={cx}
-                cy={cy}
-                r={34}
-                fill="rgba(11,42,85,0.95)"
-                stroke="rgba(47,116,192,0.45)"
-                strokeWidth="2"
-              />
-              <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle" fontSize="11" fill="rgba(255,255,255,0.95)">
-                ISSUE
-              </text>
-            </>
-          ) : null}
 
           {/* Others */}
           {others.map((n) => {
             const p = pos.get(n.id)
             if (!p) return null
-            const isPress = (n.kind ?? '').toString() === 'press' || n.id.startsWith('press:')
-            const fill = isPress ? 'rgba(57,166,198,0.16)' : 'rgba(47,116,192,0.12)'
-            const stroke = isPress ? 'rgba(57,166,198,0.35)' : 'rgba(47,116,192,0.32)'
-            const rr = 14 + Math.min(10, Math.max(0, (n.size ?? 0) * 2))
+            const fill = 'rgba(47,116,192,0.14)'
+            const stroke = 'rgba(47,116,192,0.34)'
+            const base = typeof n.size === 'number' ? n.size : 40
+            const rr = Math.max(8, Math.min(34, base / 5))
             return (
               <g key={n.id}>
                 <circle cx={p.x} cy={p.y} r={rr} fill={fill} stroke={stroke} strokeWidth="1.5" />
