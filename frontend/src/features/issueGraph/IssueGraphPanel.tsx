@@ -1,30 +1,105 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { GraphEdge, GraphNode, Issue, IssueGraphResponse } from '../../types/news'
+import type { Issue, IssueImageGraphResponse } from '../../types/news'
 import { newsConsensusApi } from '../../api/newsConsensusApi'
 
-type UiNode = { id: string; label: string; kind?: string; size?: number }
-type UiEdge = { from: string; to: string; weight?: number; kind?: string }
+type UiNode = {
+  id: string
+  label: string
+  size?: number
+  iconUrl?: string | null
+  iconMeta?: {
+    selected?: boolean
+    score?: number
+    source?: string
+    reason?: string
+    fallback?: boolean
+    candidatesCount?: number
+  } | null
+}
+type UiEdge = { from: string; to: string; weight?: number; weightNorm?: number; relation?: string }
 
-function toUiGraph(res: IssueGraphResponse): { nodes: UiNode[]; edges: UiEdge[] } {
-  const nodes: UiNode[] = (res.graph.nodes ?? []).map((n: GraphNode) => ({
-    id: n.id,
-    label: (typeof n.label === 'string' && n.label) || n.id,
-    kind: typeof n.kind === 'string' ? n.kind : undefined,
-    size: typeof n.size === 'number' ? n.size : undefined,
-  }))
-  const rawEdges: GraphEdge[] = (res.graph.links ?? res.graph.edges ?? []) as GraphEdge[]
-  const edges: UiEdge[] = rawEdges.map((e: GraphEdge) => ({
+const DEFAULT_API_BASE = 'http://127.0.0.1:8000'
+function apiBase(): string {
+  return (import.meta as any).env?.VITE_API_BASE ?? DEFAULT_API_BASE
+}
+
+function toAbsoluteApiUrl(maybePath: string | null | undefined): string | null {
+  if (!maybePath) return null
+  if (maybePath.startsWith('http://') || maybePath.startsWith('https://') || maybePath.startsWith('data:')) return maybePath
+  if (maybePath.startsWith('/')) return `${apiBase()}${maybePath}`
+  return maybePath
+}
+
+function toUiGraph(res: IssueImageGraphResponse): { nodes: UiNode[]; edges: UiEdge[] } {
+  const nodes: UiNode[] = (res.graph.nodes ?? [])
+    .filter((n) => (n.type ?? '') === 'keyword')
+    .map((n) => ({
+      id: n.id,
+      label: n.label ?? n.id,
+      size: typeof n.size === 'number' ? n.size : undefined,
+      iconUrl: toAbsoluteApiUrl(typeof n.iconUrl === 'string' ? n.iconUrl : null),
+      iconMeta: (n as any).iconMeta ?? null,
+    }))
+
+  const edges: UiEdge[] = (res.graph.edges ?? []).map((e) => ({
     from: e.source,
     to: e.target,
     weight: typeof e.weight === 'number' ? e.weight : undefined,
-    kind: typeof e.kind === 'string' ? e.kind : undefined,
+    weightNorm: typeof e.weightNorm === 'number' ? e.weightNorm : undefined,
+    relation: typeof e.relation === 'string' ? e.relation : undefined,
   }))
   return { nodes, edges }
+}
+
+function svgFallbackAvatar(label: string, size = 96): string {
+  const txt = (label || '').trim()
+  const short = encodeURIComponent(txt.length >= 2 ? txt.slice(0, 2) : txt.length === 1 ? txt : '?')
+  // simple stable-ish color
+  let h = 0
+  for (let i = 0; i < txt.length; i++) h = (h * 31 + txt.charCodeAt(i)) % 360
+  const bg = `hsl(${h},65%,55%)`
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><defs><clipPath id="c"><circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}"/></clipPath></defs><g clip-path="url(#c)"><rect width="${size}" height="${size}" fill="${bg}"/><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" font-family="system-ui,-apple-system,Segoe UI,Roboto,Arial" font-size="${Math.floor(
+    size * 0.38,
+  )}" font-weight="700" fill="rgba(255,255,255,0.96)">${decodeURIComponent(short)}</text></g></svg>`
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`
+}
+
+function edgeLabel(e: UiEdge): { label: string; tooltip: string } {
+  const wn = typeof e.weightNorm === 'number' ? e.weightNorm : null
+  const w = typeof e.weight === 'number' ? e.weight : null
+  const rel = e.relation ?? 'co_occurs'
+
+  const relationName = rel === 'co_occurs' ? '같이 언급됨' : rel
+  const label = w !== null ? `같은 기사 ${w}건` : wn !== null ? `연관도 ${wn.toFixed(2)}` : relationName
+
+  const strength =
+    w === null
+      ? wn !== null
+        ? wn >= 0.7
+          ? '강한 연관'
+          : wn >= 0.35
+            ? '연관'
+            : '약한 연관'
+        : '관계'
+      : w >= 4
+        ? '강한 연관'
+        : w >= 2
+          ? '연관'
+          : '약한 연관'
+
+  const tooltip =
+    `관계: ${relationName}\n` +
+    `강도: ${strength}\n` +
+    (w !== null ? `같은 기사: ${w}건\n` : '') +
+    (wn !== null ? `정규화 연관도: ${wn.toFixed(2)}` : '')
+
+  return { label, tooltip }
 }
 
 export function IssueGraphPanel(props: { issue: Issue; runId: string | null }) {
   const [data, setData] = useState<{ nodes: UiNode[]; edges: UiEdge[] } | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [broken, setBroken] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     const runId = props.runId
@@ -39,7 +114,7 @@ export function IssueGraphPanel(props: { issue: Issue; runId: string | null }) {
     setData(null)
     ;(async () => {
       try {
-        const res = await newsConsensusApi.getIssueGraph(runId, issueId)
+        const res = await newsConsensusApi.getIssueImageGraph(runId, issueId)
         if (!cancelled) setData(toUiGraph(res))
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : String(e))
@@ -52,51 +127,12 @@ export function IssueGraphPanel(props: { issue: Issue; runId: string | null }) {
 
   const graph = useMemo(() => data ?? { nodes: [], edges: [] }, [data])
 
-  // Keyword-only graph: connect keywords that co-occur under the same press node.
-  const kwGraph = useMemo(() => {
-    const keywordNodes = graph.nodes.filter((n) => (n.kind ?? '') === 'keyword')
-    const keywordIds = new Set(keywordNodes.map((n) => n.id))
-
-    const pressToKws = new Map<string, string[]>()
-    for (const e of graph.edges) {
-      const aIsPress = e.from.startsWith('press:')
-      const bIsPress = e.to.startsWith('press:')
-      const aIsKw = e.from.startsWith('kw:')
-      const bIsKw = e.to.startsWith('kw:')
-      if (aIsPress && bIsKw) {
-        pressToKws.set(e.from, [...(pressToKws.get(e.from) ?? []), e.to])
-      } else if (bIsPress && aIsKw) {
-        pressToKws.set(e.to, [...(pressToKws.get(e.to) ?? []), e.from])
-      }
-    }
-
-    const pairW = new Map<string, number>()
-    for (const [, kws] of pressToKws) {
-      const uniq = Array.from(new Set(kws)).filter((id) => keywordIds.has(id))
-      for (let i = 0; i < uniq.length; i++) {
-        for (let j = i + 1; j < uniq.length; j++) {
-          const u = uniq[i]!
-          const v = uniq[j]!
-          const key = u < v ? `${u}|${v}` : `${v}|${u}`
-          pairW.set(key, (pairW.get(key) ?? 0) + 1)
-        }
-      }
-    }
-
-    const edges: UiEdge[] = Array.from(pairW.entries()).map(([k, w]) => {
-      const [u, v] = k.split('|')
-      return { from: u!, to: v!, weight: w, kind: 'kw-kw' }
-    })
-
-    return { nodes: keywordNodes, edges }
-  }, [graph.nodes, graph.edges])
-
   // Minimal SVG scaffold: center node + circle layout for related nodes.
   const w = 720
   const h = 360
   const cx = w / 2
   const cy = h / 2
-  const others = kwGraph.nodes
+  const others = graph.nodes
   const r = Math.min(w, h) * 0.33
 
   const pos = new Map<string, { x: number; y: number }>()
@@ -108,7 +144,7 @@ export function IssueGraphPanel(props: { issue: Issue; runId: string | null }) {
   return (
     <div className="nc-graphWrap">
       <div className="nc-muted" style={{ fontSize: 12 }}>
-        관계 그래프 · 키워드만 표시 (언론사 기반 co-occurrence)
+        관계 그래프 · 아이콘 + 관계 라벨 (image graph)
       </div>
       {error ? (
         <div className="nc-alert" style={{ marginTop: 10 }}>
@@ -117,8 +153,15 @@ export function IssueGraphPanel(props: { issue: Issue; runId: string | null }) {
         </div>
       ) : null}
 
-      <div className="nc-graphStage" role="img" aria-label="issue relationship graph">
-        <svg viewBox={`0 0 ${w} ${h}`} width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+      <div className="nc-graphStage" role="img" aria-label="issue relationship graph" style={{ position: 'relative' }}>
+        {/* Edges in SVG */}
+        <svg
+          viewBox={`0 0 ${w} ${h}`}
+          width="100%"
+          height="100%"
+          preserveAspectRatio="xMidYMid meet"
+          style={{ display: 'block' }}
+        >
           <defs>
             <linearGradient id="edgeGrad" x1="0" x2="1">
               <stop offset="0%" stopColor="rgba(47,116,192,0.55)" />
@@ -126,48 +169,95 @@ export function IssueGraphPanel(props: { issue: Issue; runId: string | null }) {
             </linearGradient>
           </defs>
 
-          {kwGraph.edges.map((e) => {
+          {graph.edges.map((e) => {
             const a = pos.get(e.from)
             const b = pos.get(e.to)
             if (!a || !b) return null
+            const { label, tooltip } = edgeLabel(e)
             return (
-              <line
-                key={`${e.from}->${e.to}`}
-                x1={a.x}
-                y1={a.y}
-                x2={b.x}
-                y2={b.y}
-                stroke="url(#edgeGrad)"
-                strokeWidth={0.8 + Math.min(3.2, (e.weight ?? 0) * 1.2)}
-                opacity="0.55"
-              />
-            )
-          })}
-
-          {/* Others */}
-          {others.map((n) => {
-            const p = pos.get(n.id)
-            if (!p) return null
-            const fill = 'rgba(47,116,192,0.14)'
-            const stroke = 'rgba(47,116,192,0.34)'
-            const base = typeof n.size === 'number' ? n.size : 40
-            const rr = Math.max(8, Math.min(34, base / 5))
-            return (
-              <g key={n.id}>
-                <circle cx={p.x} cy={p.y} r={rr} fill={fill} stroke={stroke} strokeWidth="1.5" />
-                <text
-                  x={p.x}
-                  y={p.y + 30}
-                  textAnchor="middle"
-                  fontSize="10"
-                  fill="rgba(12,20,34,0.72)"
-                >
-                  {n.label.length > 10 ? `${n.label.slice(0, 10)}…` : n.label}
-                </text>
+              <g key={`${e.from}->${e.to}`}>
+                <line
+                  x1={a.x}
+                  y1={a.y}
+                  x2={b.x}
+                  y2={b.y}
+                  stroke="url(#edgeGrad)"
+                  strokeWidth={0.8 + Math.min(3.2, (e.weightNorm ?? 0.5) * 3)}
+                  opacity="0.55"
+                />
+                <title>{tooltip}</title>
+                {(e.weightNorm ?? 0) > 0.2 ? (
+                  <text
+                    x={(a.x + b.x) / 2}
+                    y={(a.y + b.y) / 2}
+                    textAnchor="middle"
+                    fontSize="9"
+                    fill="rgba(12,20,34,0.58)"
+                  >
+                    {label}
+                    <title>{tooltip}</title>
+                  </text>
+                ) : null}
               </g>
             )
           })}
         </svg>
+
+        {/* Nodes in HTML for stable <img> loading */}
+        {others.map((n) => {
+          const p = pos.get(n.id)
+          if (!p) return null
+          const base = typeof n.size === 'number' ? n.size : 40
+          const rr = Math.max(8, Math.min(34, base / 5))
+          const leftPct = (p.x / w) * 100
+          const topPct = (p.y / h) * 100
+          const src = broken[n.id] ? svgFallbackAvatar(n.label) : n.iconUrl || svgFallbackAvatar(n.label)
+          const meta = n.iconMeta
+          const metaLine = meta
+            ? `\nicon: ${meta.source ?? 'n/a'} score=${typeof meta.score === 'number' ? meta.score.toFixed(2) : 'n/a'} cand=${meta.candidatesCount ?? 'n/a'}`
+            : ''
+          const reasonLine = meta?.reason ? `\n${meta.reason}` : ''
+          return (
+            <div
+              key={n.id}
+              style={{
+                position: 'absolute',
+                left: `${leftPct}%`,
+                top: `${topPct}%`,
+                transform: 'translate(-50%, -50%)',
+                width: rr * 2,
+                height: rr * 2,
+                borderRadius: '999px',
+                overflow: 'hidden',
+                border: '1.5px solid rgba(47,116,192,0.34)',
+                background: 'rgba(47,116,192,0.14)',
+                boxShadow: '0 6px 18px rgba(10,25,40,0.10)',
+              }}
+              title={`${n.label}${metaLine}${reasonLine}`}
+            >
+              <img
+                src={src ?? undefined}
+                alt={n.label}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                onError={() => setBroken((prev) => ({ ...prev, [n.id]: true }))}
+              />
+              <div
+                style={{
+                  position: 'absolute',
+                  left: '50%',
+                  top: '100%',
+                  transform: 'translate(-50%, 8px)',
+                  fontSize: 10,
+                  color: 'rgba(12,20,34,0.72)',
+                  whiteSpace: 'nowrap',
+                  pointerEvents: 'none',
+                }}
+              >
+                {n.label.length > 10 ? `${n.label.slice(0, 10)}…` : n.label}
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

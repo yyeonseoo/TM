@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import math
 from pathlib import Path
 from typing import Any
@@ -92,6 +93,14 @@ def visualize_graph(G: nx.Graph, filename: str | Path) -> dict[str, str]:
     try:
         from pyvis.network import Network  # type: ignore
 
+        def _encode_image_base64(path: str) -> str | None:
+            p = Path(path)
+            if not p.exists() or not p.is_file():
+                return None
+            data = base64.b64encode(p.read_bytes()).decode("utf-8")
+            # default png; browsers still render for jpg in most cases but keep simple
+            return "data:image/png;base64," + data
+
         net = Network(height="720px", width="100%", directed=False, bgcolor="#ffffff")
         for node, attrs in G.nodes(data=True):
             kind = attrs.get("kind", "")
@@ -99,14 +108,43 @@ def visualize_graph(G: nx.Graph, filename: str | Path) -> dict[str, str]:
             label = str(attrs.get("label", node))
             color = "#0B2A55" if kind == "issue" else ("#5B6F86" if kind == "press" else _importance_color(float(attrs.get("importance", 0.0))))
             title = f"{kind} | {label}"
-            net.add_node(node, label=label if node in label_nodes else "", title=title, color=color, size=size / 8)
+            icon = attrs.get("icon") or attrs.get("iconUrl") or attrs.get("image")
+            image = None
+            shape = None
+            if isinstance(icon, str) and icon:
+                if icon.startswith("http") or icon.startswith("data:image/"):
+                    image = icon
+                    shape = "image"
+                else:
+                    image = _encode_image_base64(icon)
+                    if image:
+                        shape = "image"
+
+            net.add_node(
+                node,
+                label=label if node in label_nodes else "",
+                title=title,
+                color=color,
+                size=size / 8,
+                shape=shape,
+                image=image,
+            )
         for u, v, d in G.edges(data=True):
             w = d.get("weight_norm", d.get("weight", 0.0))
             try:
                 w = float(w)
             except Exception:
                 w = 0.0
-            net.add_edge(u, v, value=max(0.1, w), title=str(d.get("kind", "")))
+            rel = str(d.get("relation") or d.get("kind") or "")
+            show_label = w >= 0.2 and bool(rel)
+            net.add_edge(
+                u,
+                v,
+                value=max(0.1, w),
+                title=rel,
+                label=rel if show_label else "",
+                font={"size": 16, "align": "middle"},
+            )
         net.force_atlas_2based()
         net.write_html(str(html_path))
     except Exception:

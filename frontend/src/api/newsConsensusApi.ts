@@ -4,6 +4,7 @@ import type {
   CreateRunRequest,
   CreateRunResponse,
   IssueGraphResponse,
+  IssueImageGraphResponse,
   IssueTimeseriesResponse,
   IssuesResponse,
   JobStatusResponse,
@@ -54,6 +55,11 @@ export const newsConsensusApi = {
   getIssueGraph(runId: string, issueId: string) {
     return requestJson<IssueGraphResponse>(
       `/api/runs/${encodeURIComponent(runId)}/issues/${encodeURIComponent(issueId)}/graph`,
+    )
+  },
+  getIssueImageGraph(runId: string, issueId: string) {
+    return requestJson<IssueImageGraphResponse>(
+      `/api/runs/${encodeURIComponent(runId)}/issues/${encodeURIComponent(issueId)}/image-graph`,
     )
   },
   getIssueTimeseries(runId: string, keyword: string, display = 100) {

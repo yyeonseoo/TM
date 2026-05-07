@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api.runs import router as runs_router
 from backend.api.jobs import router as jobs_router
+from backend.api.assets import router as assets_router
 
 
 def _try_load_dotenv() -> None:
@@ -35,6 +36,7 @@ def create_app() -> FastAPI:
 
     app.include_router(runs_router, prefix="/api")
     app.include_router(jobs_router, prefix="/api")
+    app.include_router(assets_router, prefix="/api")
 
     return app
 

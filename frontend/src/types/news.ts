@@ -121,3 +121,39 @@ export type IssueGraphResponse = {
   }
 }
 
+export type ImageGraphNode = {
+  id: string
+  type: 'keyword' | 'image' | string
+  label?: string
+  size?: number
+  importance?: number
+  iconUrl?: string | null
+  iconMeta?: {
+    selected?: boolean
+    score?: number
+    source?: string
+    reason?: string
+    fallback?: boolean
+    candidatesCount?: number
+  } | null
+}
+
+export type ImageGraphEdge = {
+  source: string
+  target: string
+  relation?: string
+  weight?: number
+  weightNorm?: number
+}
+
+export type IssueImageGraphResponse = {
+  runId: string
+  issueId: string
+  issueText?: string
+  imageRanking?: unknown
+  graph: {
+    nodes: ImageGraphNode[]
+    edges: ImageGraphEdge[]
+  }
+}
+

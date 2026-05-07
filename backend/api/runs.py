@@ -18,6 +18,7 @@ from backend.storage.run_repository import (
 )
 
 from graph_pipeline.graphs.weighted_graph import build_weighted_graph
+from backend.services.image_graph_service import build_image_graph_payload
 
 
 router = APIRouter(tags=["runs"])
@@ -109,6 +110,32 @@ def get_issue_graph(runId: str, issueId: str):
 
     _, export_json = build_weighted_graph(issue_data)
     return {"runId": runId, "issueId": issueId, "graph": export_json}
+
+
+@router.get("/runs/{runId}/issues/{issueId}/image-graph")
+def get_issue_image_graph(runId: str, issueId: str):
+    """
+    Keyword-only undirected issue graph with icon image urls, relation labels,
+    ranking + adaptive cutoff + pruning.
+    """
+    issues = load_issues(runId)
+    if issues is None:
+        raise HTTPException(status_code=404, detail="issues not found for run")
+
+    issue = next((it for it in issues if str(it.get("issueId")) == str(issueId)), None)
+    if issue is None:
+        raise HTTPException(status_code=404, detail="issue not found")
+
+    payload = build_image_graph_payload(issue)
+    # rewrite icon urls to go through proxy (avoid CORS)
+    from urllib.parse import quote
+
+    for n in payload.get("graph", {}).get("nodes", []):
+        icon = n.get("iconUrl")
+        if isinstance(icon, str) and icon.startswith("http"):
+            n["iconUrl"] = f"/api/image-proxy?url={quote(icon, safe='')}"
+
+    return {"runId": runId, **payload}
 
 
 @router.get("/runs/{runId}/issues/timeseries")
