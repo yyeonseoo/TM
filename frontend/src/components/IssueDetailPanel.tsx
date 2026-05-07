@@ -90,7 +90,7 @@ export function IssueDetailPanel(props: { issue: Issue | null; runId: string | n
         {tab === 'graph' ? (
           <div className="nc-stack">
             <div className="nc-subtitle">이슈 관계 그래프</div>
-            <IssueGraphPanel issue={issue} />
+            <IssueGraphPanel issue={issue} runId={runId} />
           </div>
         ) : null}
 

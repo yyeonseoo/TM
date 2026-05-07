@@ -92,3 +92,32 @@ export type IssueTimeseriesResponse = {
   articles: TimeseriesArticle[]
 }
 
+export type GraphNode = {
+  id: string
+  kind?: string
+  label?: string
+  size?: number
+  [k: string]: unknown
+}
+
+export type GraphEdge = {
+  source: string
+  target: string
+  weight?: number
+  kind?: string
+  [k: string]: unknown
+}
+
+export type IssueGraphResponse = {
+  runId: string
+  issueId: string
+  graph: {
+    nodes: GraphNode[]
+    links?: GraphEdge[]
+    edges?: GraphEdge[]
+    directed?: boolean
+    multigraph?: boolean
+    graph?: Record<string, unknown>
+  }
+}
+

@@ -31,7 +31,6 @@ export function ControlPanel(props: {
             className="nc-input"
             type="number"
             min={1}
-            max={300}
             step={1}
             value={props.targetCount}
             onChange={(e) => props.setTargetCount(Number(e.target.value))}
@@ -44,7 +43,6 @@ export function ControlPanel(props: {
             className="nc-input"
             type="number"
             min={10}
-            max={2000}
             step={10}
             value={props.linkPoolSize}
             onChange={(e) => props.setLinkPoolSize(Number(e.target.value))}

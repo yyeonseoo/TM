@@ -10,19 +10,31 @@ export function useRun() {
 
   const createRun = useCallback(async (payload: CreateRunRequest) => {
     setError(null)
-    const res: CreateRunResponse = await newsConsensusApi.createRun(payload)
-    setRunId(res.runId)
-    setCollectJobId(res.collectJobId)
-    setAnalyzeJobId(null)
-    return res
+    try {
+      const res: CreateRunResponse = await newsConsensusApi.createRun(payload)
+      setRunId(res.runId)
+      setCollectJobId(res.collectJobId)
+      setAnalyzeJobId(null)
+      return res
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e)
+      setError(message)
+      throw e
+    }
   }, [])
 
   const startAnalyze = useCallback(async () => {
     if (!runId) throw new Error('runId is null')
     setError(null)
-    const res = await newsConsensusApi.analyze(runId)
-    setAnalyzeJobId(res.analyzeJobId)
-    return res
+    try {
+      const res = await newsConsensusApi.analyze(runId)
+      setAnalyzeJobId(res.analyzeJobId)
+      return res
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e)
+      setError(message)
+      throw e
+    }
   }, [runId])
 
   return {

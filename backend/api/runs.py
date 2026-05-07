@@ -17,6 +17,8 @@ from backend.storage.run_repository import (
     new_run,
 )
 
+from graph_pipeline.graphs.weighted_graph import build_weighted_graph
+
 
 router = APIRouter(tags=["runs"])
 
@@ -61,6 +63,53 @@ def get_issues(runId: str):
     if issues is None:
         raise HTTPException(status_code=404, detail="issues not found for run")
     return IssuesResponse(runId=runId, issues=issues)
+
+
+@router.get("/runs/{runId}/issues/{issueId}/graph")
+def get_issue_graph(runId: str, issueId: str):
+    """
+    Build and return a weighted relationship graph for a single issue, for the web UI.
+
+    This uses the analyzed issue JSON (pressData/keywords/evidence) and constructs a
+    prompt-shaped `issue_data` object for the graph builder.
+    """
+    issues = load_issues(runId)
+    if issues is None:
+        raise HTTPException(status_code=404, detail="issues not found for run")
+
+    issue = next((it for it in issues if str(it.get("issueId")) == str(issueId)), None)
+    if issue is None:
+        raise HTTPException(status_code=404, detail="issue not found")
+
+    # Synthesize minimal prompt-shaped issue data
+    press_data = issue.get("pressData") or []
+    articles = []
+    for p in press_data:
+        press = (p or {}).get("press") or "unknown"
+        titles = (p or {}).get("titles") or []
+        links = (p or {}).get("links") or []
+        evidence = (p or {}).get("evidenceSentences") or []
+        n = max(len(titles), len(links), 1)
+        for j in range(n):
+            articles.append(
+                {
+                    "title": titles[j] if j < len(titles) else (titles[0] if titles else ""),
+                    "sentences": evidence if isinstance(evidence, list) else [],
+                    "publisher": press,
+                    "rawtext": " ".join(evidence) if isinstance(evidence, list) else str(evidence or ""),
+                    "date": None,
+                }
+            )
+
+    issue_data = {
+        "issueid": issueId,
+        "articles": articles,
+        "keywords": [{"keyword": k, "importance": 1.0} for k in (issue.get("keywords") or []) if k],
+    }
+
+    _, export_json = build_weighted_graph(issue_data)
+    return {"runId": runId, "issueId": issueId, "graph": export_json}
+
 
 @router.get("/runs/{runId}/issues/timeseries")
 def get_issue_timeseries(

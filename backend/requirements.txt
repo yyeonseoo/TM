@@ -8,3 +8,11 @@ numpy
 scikit-learn
 sentence-transformers
 keybert
+networkx
+matplotlib
+xgboost
+lightgbm
+transformers
+kiwipiepy
+pyvis
+python-louvain

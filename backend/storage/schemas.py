@@ -11,8 +11,8 @@ JobStatus = Literal["queued", "running", "done", "error"]
 
 class CreateRunRequest(BaseModel):
     categoryFilter: str = Field(default="politics")
-    targetCount: int = Field(default=30, ge=1, le=300)
-    linkPoolSize: int = Field(default=100, ge=10, le=2000)
+    targetCount: int = Field(default=30, ge=1)
+    linkPoolSize: int = Field(default=100, ge=10)
 
 
 class CreateRunResponse(BaseModel):

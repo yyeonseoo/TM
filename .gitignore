@@ -15,6 +15,12 @@ __pycache__/
 backend/data/runs/
 backend/data/jobs.json
 
+# Graph pipeline outputs
+results/
+
+# PyVis html local assets (generated)
+lib/
+
 # Frontend dependencies/build output (also ignored in frontend/.gitignore)
 frontend/node_modules/
 frontend/dist/

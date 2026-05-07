@@ -67,12 +67,20 @@ export function NewsConsensusPage() {
     setArticles([])
     clearIssues()
     setSelectedIssueId(null)
-    await createRun({ categoryFilter, targetCount, linkPoolSize })
+    try {
+      await createRun({ categoryFilter, targetCount, linkPoolSize })
+    } catch {
+      // error is handled in useRun() state
+    }
   }
 
   async function onAnalyze() {
     setRunError(null)
-    await startAnalyze()
+    try {
+      await startAnalyze()
+    } catch {
+      // error is handled in useRun() state
+    }
   }
 
   const canAnalyze = Boolean(runId && (collect.job?.status === 'done' || (articles?.length ?? 0) > 0))
